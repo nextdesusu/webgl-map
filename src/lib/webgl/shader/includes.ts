@@ -12,11 +12,7 @@ export type Include = {
 
 export const INCLUDES = {
   camera: {
-    code: `
-      uniform mat3 u_model;
-      uniform mat3 u_view;
-      uniform mat3 u_projection;
-    `,
+    code: "uniform mat3 u_model;\n" + "uniform mat3 u_view;\n" + "uniform mat3 u_projection;",
     uniforms: {
       model: Matrix3,
       view: Matrix3,
