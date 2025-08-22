@@ -1,1 +1,1 @@
-export * from "./mesh2d";
+export * from "./sprite";
