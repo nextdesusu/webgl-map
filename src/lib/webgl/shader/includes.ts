@@ -1,32 +1,21 @@
 import { Matrix3 } from "../../math/matrix";
-import { GLAllowedType } from "../types";
+import { AttributesMap, GLAllowedType, RawShader, UniformMap } from "../types";
 
-type AttributesAndUniforms = {
-  uniforms?: Record<string, GLAllowedType>;
-  attributes?: Record<string, GLAllowedType>;
-}
-
-export type Include = {
-  code: string;
-} & AttributesAndUniforms;
-
-export const INCLUDES = {
+export const INCLUDES: Record<string, RawShader> = {
   camera: {
     code: "uniform mat3 u_model;\n" + "uniform mat3 u_view;\n" + "uniform mat3 u_projection;",
     uniforms: {
       model: Matrix3,
       view: Matrix3,
       projection: Matrix3,
-    },
-  } as Include,
+    } as UniformMap,
+  },
 }
 
 const INCLUDE_REGEXP = /#include \<(?<lib>.+)\>/;
-export function resolveIncludes(shaderCode: string) {
-  const attributesAndUniforms: AttributesAndUniforms = {
-    attributes: {},
-    uniforms: {},
-  };
+export function resolveIncludes(shaderCode: string): RawShader {
+  let attributes: AttributesMap | undefined = undefined;
+  let uniforms: UniformMap | undefined = undefined
 
   return {
     code: shaderCode.replace(INCLUDE_REGEXP, (_match: any, lib: string) => {
@@ -37,14 +26,15 @@ export function resolveIncludes(shaderCode: string) {
       }
 
       if (library.attributes) {
-        attributesAndUniforms.attributes = { ...attributesAndUniforms.attributes, ...library.attributes };
+        attributes = { ...attributes, ...library.attributes };
       }
 
       if (library.uniforms) {
-        attributesAndUniforms.uniforms = { ...attributesAndUniforms.uniforms, ...library.uniforms };
+        uniforms = { ...uniforms, ...library.uniforms };
       }
       return library.code;
     }),
-    attributesAndUniforms,
+    attributes,
+    uniforms
   }
 }

@@ -1,7 +1,8 @@
 
 import { ensureGLOk } from "../error";
 import { GLContextIsNotInit } from "../renderer/errors";
-import { IGLResource } from "../types";
+import { IGLResource, IRenderContext } from "../types";
+import { TextureManager } from "./manager";
 import { TexturePropsInner, TextureProps } from "./types";
 
 
@@ -16,9 +17,9 @@ export class Texture implements IGLResource {
   /**
    * Устанавливается рендерером
    */
-  _gl: WebGL2RenderingContext | null;
+  private _gl: WebGL2RenderingContext | null;
 
-  private constructor(imageData: HTMLImageElement, props?: TextureProps) {
+  constructor(imageData: HTMLImageElement, props?: TextureProps) {
     this._gl = null;
     this._tex = null;
     this._props = normalizeTextureProps(props);
@@ -28,12 +29,25 @@ export class Texture implements IGLResource {
   private get gl() {
     const gl = this._gl;
     if (!gl) {
-      throw new GLContextIsNotInit();
+      throw GLContextIsNotInit.instance;
     }
     return gl;
   }
 
+  get source() {
+    return this._imageData;
+  }
+
+  use(ctx: IRenderContext) {
+    if (!this._gl) {
+      this.init(ctx.gl);
+    }
+    
+    ctx.textureManager.useTexture(this);
+  }
+
   init(gl: WebGL2RenderingContext) {
+    this.deInit();
     const tex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -42,10 +56,22 @@ export class Texture implements IGLResource {
   }
 
   deInit() {
+    const gl = this._gl;
+    if (!gl) {
+      return
+    }
 
+    const tex = this._tex;
+    if (!tex) {
+      return
+    }
+
+    gl.deleteTexture(tex);
+    this._tex = null;
+    this._gl = null;
   }
 
-  use() {
+  doInit() {
     const gl = this.gl;
 
     gl.bindTexture(gl.TEXTURE_2D, this._tex);

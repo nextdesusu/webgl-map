@@ -1,6 +1,7 @@
+import { RawShader } from "../types";
 import { resolveIncludes } from "./includes";
 
-export function processShaderSource(source: string) {
+export function processShaderSource(source: string): RawShader {
   const includes = resolveIncludes(source);
   return {
     ...includes,
