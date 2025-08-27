@@ -1,5 +1,5 @@
-import { Matrix3 } from "../../math/matrix";
-import { Vector2 } from "../../math/vector";
+import { Matrix3 } from "../../math/matrix3";
+import { Vector2 } from "../../math/vector2";
 import { ITransform2D } from "../types";
 
 // const _mat3 = new Matrix3();

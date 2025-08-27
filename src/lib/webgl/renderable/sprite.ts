@@ -12,7 +12,7 @@ export class Sprite implements IRenderable2D {
   }
 
   render(ctx: IRenderContext): void {
-    this._texture.use(ctx);
+    // this._texture.use(ctx);
     
   }
 }

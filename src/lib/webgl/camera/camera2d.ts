@@ -1,4 +1,4 @@
-import { Matrix3 } from "../../math/matrix";
+import { Matrix3 } from "../../math/matrix3";
 
 export class Camera2d {
   model = new Matrix3();

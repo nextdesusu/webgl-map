@@ -1,13 +1,16 @@
-import { mat3, mat4, vec3 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 import { loadImage } from "../helpers/image";
 import { ensureGLOk } from "../webgl/error";
 import { SimpleProgram } from "../webgl/program";
 import { Renderer } from "../webgl/renderer";
-import { processShaderSource } from "../webgl/shader/process";
 import { Texture } from "../webgl/texture";
 import { TextureManager } from "../webgl/texture/manager";
 import { IRenderContext } from "../webgl/types";
 import { Shader } from "../webgl/shader/shader";
+import { WebglContextOwner } from "../webgl/context/owner";
+import { StaticBuffer } from "../webgl/buffer/static";
+import { Vector3 } from "../math/vector3";
+import { Matrix4 } from "../math/matrix4";
 
 export class MapDisplay {
   private constructor(private readonly renderer: Renderer) { }
@@ -27,20 +30,20 @@ export class MapDisplay {
   async test() {
     const renderer = this.renderer;
     const gl = renderer.gl;
+    const ctx = new WebglContextOwner({
+      gl,
+    });
 
     const textures = await Promise.all(textureSources.map(async (src) => {
       const img = await loadImage(src);
       return new Texture(img);
     }));
 
-    console.log('textures', textures);
-
-    textures.forEach((tex) => tex.init(gl));
+    textures.forEach((tex) => tex.init(ctx));
 
     const drawInfos = textures.map((tex) => {
-
-      const position = vec3.create();
-      const scale = vec3.create();
+      const position = new Vector3(0, 0, 0);
+      const scale = new Vector3(1, 1, 1);
       return {
         texture: tex,
         position,
@@ -48,29 +51,25 @@ export class MapDisplay {
       }
     });
 
-    const positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    const positionBuffer = StaticBuffer.f32([
       0, 0,
       0, 1,
       1, 0,
       1, 0,
       0, 1,
       1, 1,
-    ]), gl.STATIC_DRAW);
+    ]);
+    positionBuffer.init(ctx);
 
-    const textcoordBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, textcoordBuffer);
-
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    const textcoordBuffer = StaticBuffer.f32([
       0, 0,
       0, 1,
       1, 0,
       1, 0,
       0, 1,
       1, 1,
-    ]), gl.STATIC_DRAW);
+    ]);
+    textcoordBuffer.init(ctx);
 
     const program = new SimpleProgram({
       vertex: Shader.vertex(`
@@ -97,10 +96,12 @@ export class MapDisplay {
       `),
     });
 
-    program.init(gl);
+    program.init(ctx);
 
     let then = 0;
     function render(time: number) {
+      ensureGLOk(gl);
+
       requestAnimationFrame(render);
 
       const now = time * 0.001;
@@ -112,15 +113,10 @@ export class MapDisplay {
       // renderer.render();
     }
 
-    const ctx: IRenderContext = {
-      textureManager: new TextureManager(),
-      gl,
-    }
-
     function draw() {
       for (const info of drawInfos) {
         const tex = info.texture;
-        tex.use(ctx);
+        tex.use();
         program.use();
 
         gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -130,24 +126,24 @@ export class MapDisplay {
         // gl.enableVertexAttribArray(TEXTURE_LOCATION);
         // gl.vertexAttribPointer(TEX)
 
-        let matrix = mat4.ortho(mat4.create(), 0, gl.canvas.width, gl.canvas.height, 0, -1, 1);
-
-        matrix = mat4.translate(matrix, matrix, info.position);
-        matrix = mat4.scale(matrix, matrix, info.scale);
-        // gl.uniformMatrix4fv(MATRIX_LOCATION, false, matrix);
+        const matrix = Matrix4.ortho(0, gl.canvas.width, gl.canvas.height, 0, -1, 1)
+          .translate(info.position)
+          .scale(info.scale);
 
 
         const w = 100;
         const h = 100;
         const s = tex.source;
-        const translation = vec3.create();
-        vec3.set(translation, s.width / w, s.height / h, 0);
-        const texMatrix = mat4.fromTranslation(mat4.create(), translation);
+        const translation = new Vector3(s.width / w, s.height / h, 0)
+        const texMatrix = Matrix4.fromTranslation(translation);
+
+        program.setUniform("u_matrix", matrix);
+        program.setUniform("texture_matrix", texMatrix);
 
         // gl.uniformMatrix4fv(TEXTURE_MATRIX_LOCATION, false, texMatrix);
         // gl.uniform1i(TEXTURE_LOCATION, 0);
 
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        // gl.drawArrays(gl.TRIANGLES, 0, 6);
       }
     }
 
@@ -156,8 +152,9 @@ export class MapDisplay {
       for (const info of drawInfos) {
         const moveX = r() * SPEED * delta;
         const moveY = r() * SPEED * delta;
-        vec3.add(info.position, info.position, vec3.set(vec3.create(), moveX, moveY, 0));
-        vec3.set(info.scale, r(), r(), 1);
+
+        info.position.add(new Vector3(moveX, moveY, 0));
+        info.scale.set(r(), r(), 1);
       }
     }
 

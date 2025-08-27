@@ -1,6 +1,6 @@
-import { Matrix3 } from "../../math/matrix";
-import { Vector2 } from "../../math/vector";
-import { GLAllowedType, GLAllowedValue } from "../types";
+import { Matrix3 } from "../../math/matrix3";
+import { Vector2 } from "../../math/vector2";
+import { GLAllowedValue, GLTransferableType } from "../types";
 
 
 type Entry<T, State = any> = {
@@ -11,7 +11,7 @@ type Entry<T, State = any> = {
 export class BaseMap {
   private _added: Map<string, Entry<any>> = new Map();
 
-  addEntry(name: string, value: GLAllowedValue) {
+  addEntry(name: string, value: GLTransferableType) {
     const entry: Entry<any> = {
       setter: this.getSetter(value),
       state: this.createDefaultState(value),
@@ -26,7 +26,7 @@ export class BaseMap {
     }
   }
 
-  private createDefaultState(t: GLAllowedValue) {
+  private createDefaultState(t: GLTransferableType) {
     if (t instanceof Matrix3) {
       // const buff = 
       // return {
@@ -37,7 +37,7 @@ export class BaseMap {
     return null;
   }
 
-  private getSetter(t: GLAllowedValue): Entry<any>['setter'] {
+  private getSetter(t: GLTransferableType): Entry<any>['setter'] {
     if (t instanceof Matrix3) {
       return setMatrix;
     }

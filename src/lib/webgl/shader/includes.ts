@@ -1,5 +1,5 @@
-import { Matrix3 } from "../../math/matrix";
-import { AttributesMap, GLAllowedType, RawShader, UniformMap } from "../types";
+import { Matrix3 } from "../../math/matrix3";
+import { AttributeMap, GLAllowedValue, RawShader, UniformMap } from "../types";
 
 export const INCLUDES: Record<string, RawShader> = {
   camera: {
@@ -14,7 +14,7 @@ export const INCLUDES: Record<string, RawShader> = {
 
 const INCLUDE_REGEXP = /#include \<(?<lib>.+)\>/;
 export function resolveIncludes(shaderCode: string): RawShader {
-  let attributes: AttributesMap | undefined = undefined;
+  let attributes: AttributeMap | undefined = undefined;
   let uniforms: UniformMap | undefined = undefined
 
   return {

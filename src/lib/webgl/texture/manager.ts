@@ -33,7 +33,7 @@ export class TextureManager {
       return;
     }
 
-    texture.deInit();
+    // texture.deInit();
     this._textures.delete(texture);
   }
 
