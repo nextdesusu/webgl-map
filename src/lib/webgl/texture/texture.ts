@@ -2,6 +2,7 @@ import { ensureGLOk } from "../error";
 import { IGLLifeCycle, IWebglOwner } from "../types";
 import { TexturePropsInner, TextureProps } from "./types";
 
+const TEXTURE_2D = 3553;
 /**
  * Хочу чтобы этот класс был примерно похож на тот что в pixi.js но не получается 
  */
@@ -16,6 +17,8 @@ export class Texture implements IGLLifeCycle {
     this._imageData = imageData;
   }
 
+  channel = TEXTURE_2D;
+
   get source() {
     return this._imageData;
   }
@@ -23,12 +26,10 @@ export class Texture implements IGLLifeCycle {
   init(ctx: IWebglOwner) {
     const gl = ctx.gl;
     const tex = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, tex);
     this._tex = tex;
 
     this.use = () => {
-      const textureChannel = gl.TEXTURE_2D;
+      const textureChannel = this.channel;
       const props = this._props;
 
       gl.bindTexture(textureChannel, this._tex);
@@ -44,6 +45,7 @@ export class Texture implements IGLLifeCycle {
         props.sourceType,
         this._imageData,
       );
+      ensureGLOk(gl);
     }
   }
 

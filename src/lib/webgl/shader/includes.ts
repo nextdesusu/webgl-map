@@ -1,5 +1,5 @@
 import { Matrix3 } from "../../math/matrix3";
-import { AttributeMap, GLAllowedValue, RawShader, UniformMap } from "../types";
+import { AttributeMap, GLTransferableType, RawShader, UniformMap } from "../types";
 
 export const INCLUDES: Record<string, RawShader> = {
   camera: {

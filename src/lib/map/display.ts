@@ -11,6 +11,7 @@ import { WebglContextOwner } from "../webgl/context/owner";
 import { StaticBuffer } from "../webgl/buffer/static";
 import { Vector3 } from "../math/vector3";
 import { Matrix4 } from "../math/matrix4";
+import { Vector2 } from "../math/vector2";
 
 export class MapDisplay {
   private constructor(private readonly renderer: Renderer) { }
@@ -39,10 +40,14 @@ export class MapDisplay {
       return new Texture(img);
     }));
 
+
     textures.forEach((tex) => tex.init(ctx));
 
     const drawInfos = textures.map((tex) => {
-      const position = new Vector3(0, 0, 0);
+      const cnv = gl.canvas;
+      const x = randomInt(0, cnv.width);
+      const y = randomInt(0, cnv.height);
+      const position = new Vector3(x, y, 0);
       const scale = new Vector3(1, 1, 1);
       return {
         texture: tex,
@@ -51,49 +56,40 @@ export class MapDisplay {
       }
     });
 
-    const positionBuffer = StaticBuffer.f32([
-      0, 0,
-      0, 1,
-      1, 0,
-      1, 0,
-      0, 1,
-      1, 1,
-    ]);
-    positionBuffer.init(ctx);
-
-    const textcoordBuffer = StaticBuffer.f32([
-      0, 0,
-      0, 1,
-      1, 0,
-      1, 0,
-      0, 1,
-      1, 1,
-    ]);
-    textcoordBuffer.init(ctx);
-
     const program = new SimpleProgram({
       vertex: Shader.vertex(`
-        uniform mat4 u_matrix;
         uniform mat4 u_textureMatrix;
 
-        in vec2 a_position;
+        in vec3 a_position;
 
         out vec2 v_texcoord;
 
         void main() {
-          gl_Position = u_matrix * a_position;
-          v_texcoord = (u_textureMatrix * vec4(a_texcoord, 0, 1)).xy;
+          gl_Position = vec4(a_position.xy, 1.0, 1.0);
+          v_texcoord = (u_textureMatrix * vec4(a_position.xyz, 1)).xy;
         }
-      `),
+      `, {
+        uniforms: {
+          u_textureMatrix: Matrix4,
+        },
+        attributes: {
+          a_position: Vector3,
+        }
+      }),
       fragment: Shader.fragment(`
-        precision mediump float;
-        uniform u_texture;
-        in vec4 v_texcoord;
+        uniform sampler2D u_texture;
+        in vec2 v_texcoord;
 
+        out vec4 fragColor;
         void main() {
-          gl_FragColor = texture2D(u_texture, v_texcoord);
+          // fragColor = texture(u_texture, v_texcoord);
+          fragColor = vec4(1.0, 0.0, 0.0, 1.0);
         }
-      `),
+      `, {
+        uniforms: {
+          u_texture: Texture,
+        }
+      }),
     });
 
     program.init(ctx);
@@ -101,7 +97,6 @@ export class MapDisplay {
     let then = 0;
     function render(time: number) {
       ensureGLOk(gl);
-
       requestAnimationFrame(render);
 
       const now = time * 0.001;
@@ -114,36 +109,27 @@ export class MapDisplay {
     }
 
     function draw() {
-      for (const info of drawInfos) {
+      gl.clearColor(.1, .1, .1, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+
+      for (let i = 0; i < drawInfos.length; i++) {
+        program.sync(ctx);
+        const info = drawInfos[i];
         const tex = info.texture;
-        tex.use();
-        program.use();
+        program.setAttribute("a_position", i, info.position);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        // gl.enableVertexAttribArray(POSITION_LOCATION);
-        // gl.vertexAttribPointer(POSITION_LOCATION, 2, gl.FLOAT, false, 0, 0);
-        gl.bindBuffer(gl.ARRAY_BUFFER, textcoordBuffer);
-        // gl.enableVertexAttribArray(TEXTURE_LOCATION);
-        // gl.vertexAttribPointer(TEX)
-
-        const matrix = Matrix4.ortho(0, gl.canvas.width, gl.canvas.height, 0, -1, 1)
-          .translate(info.position)
-          .scale(info.scale);
-
-
-        const w = 100;
-        const h = 100;
+        const w = 1;
+        const h = 1;
         const s = tex.source;
-        const translation = new Vector3(s.width / w, s.height / h, 0)
+        const translation = new Vector3(s.width / w, s.height / h, 1)
         const texMatrix = Matrix4.fromTranslation(translation);
 
-        program.setUniform("u_matrix", matrix);
-        program.setUniform("texture_matrix", texMatrix);
-
-        // gl.uniformMatrix4fv(TEXTURE_MATRIX_LOCATION, false, texMatrix);
-        // gl.uniform1i(TEXTURE_LOCATION, 0);
-
-        // gl.drawArrays(gl.TRIANGLES, 0, 6);
+        // program.setUniform("u_matrix", matrix);
+        program.setUniform("u_textureMatrix", texMatrix);
+        program.setUniform("u_texture", tex);
+        tex.use();
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        ensureGLOk(gl);
       }
     }
 
@@ -162,6 +148,7 @@ export class MapDisplay {
   }
 }
 
+
 function r() {
   const sign = Math.random() > 0.5 ? 1 : -1;
   return Math.random() * sign;
@@ -172,3 +159,9 @@ const textureSources = [
   '/images/2.png',
   '/images/3.png',
 ];
+
+function randomInt(min: number, max: number) {
+  min = Math.ceil(min); // Ensure min is an integer
+  max = Math.floor(max); // Ensure max is an integer
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}

@@ -1,6 +1,5 @@
 import { AbstractTicker, TimeTickerCb } from "./ticker";
 
-
 export class TimeTicker extends AbstractTicker {
   private tickPeriod: number;
 

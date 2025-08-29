@@ -1,6 +1,5 @@
 import * as math from "gl-matrix";
 import { Vector2 } from "./vector2";
-import { ArrayLike, IWriteableStructure } from "./types";
 import { Writeable } from "./writeable";
 
 export class Matrix3 extends Writeable<math.mat3> {

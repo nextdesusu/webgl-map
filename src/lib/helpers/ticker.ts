@@ -24,6 +24,10 @@ export abstract class AbstractTicker {
 
   abstract plan(): void;
 
+  abstract start(): void;
+
+  abstract stop(): void;
+
   protected runTimer = () => {
     if (this.isTicking) {
       const now = Date.now();
@@ -34,8 +38,4 @@ export abstract class AbstractTicker {
       this.lastRun = Date.now();
     }
   };
-
-  abstract start(): void;
-
-  abstract stop(): void;
 }

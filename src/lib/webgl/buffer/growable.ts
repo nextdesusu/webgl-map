@@ -59,10 +59,14 @@ export class GrowableBuffer<T extends BufferLike = BufferLike> extends StaticBuf
     return this._idx;
   }
 
+  /**
+   * 
+   * @returns Был ли буфер реаллоцирован в результате операции
+   */
   push(item: number) {
-    this.changed = true;
-    this.ensureCanFit(this.length + 1);
+    const reallocated = this.reallocateIfNeeded(this.length + 1);
     this._buffer[this._idx++] = item;
+    return reallocated;
   }
 
   deleteItemAt(idx: number) {
@@ -75,18 +79,19 @@ export class GrowableBuffer<T extends BufferLike = BufferLike> extends StaticBuf
       buff[i] = j;
     }
     this._idx--;
-    this.changed = true;
   }
 
-  override write(target: BufferLike, offset?: number): void {
-    
+  override read(target: BufferLike, offset = 0) {
+    const totalLength = target.length + offset;
+    const reallocated = this.reallocateIfNeeded(totalLength);
+    super.read(target, offset);
+    return reallocated;
   }
 
-  private ensureCanFit(nextLength: number) {
+  private reallocateIfNeeded(nextLength: number) {
+    let reallocated = false;
     const cap = this.capacity;
     if (shouldGrow(nextLength, cap)) {
-      this._needsRebind = true;
-
       const oldBuffer = this._buffer;
       const newBuffer = this._factory(nextLength * 2);
       for (let i = 0; i < this.length; i++) {
@@ -94,9 +99,12 @@ export class GrowableBuffer<T extends BufferLike = BufferLike> extends StaticBuf
         newBuffer[i] = item;
       }
       this._buffer = newBuffer;
+      reallocated = true;
     } else if (shouldShrink(nextLength, cap)) {
 
     }
+
+    return reallocated;
   }
 }
 

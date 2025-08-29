@@ -1,35 +1,20 @@
-import { IGLLifeCycleSync, IWebglOwner } from "../types";
 import { BufferLike } from "./types";
 
-const STATIC_DRAW = 35044;
+// const STATIC_DRAW = 35044;
 
-export class StaticBuffer<T extends BufferLike = BufferLike> implements IGLLifeCycleSync {
+export class StaticBuffer<T extends BufferLike = BufferLike> {
   protected _buffer: T;
-  protected _glBuffer: WebGLBuffer | null;
-  protected _needsRebind: boolean;
   protected _type: number;
 
-  usage = STATIC_DRAW;
-  
-  changed: boolean;
+  // usage = STATIC_DRAW;
+
   constructor(src: T) {
     this._buffer = src;
-    this.changed = false;
-    this._needsRebind = true;
-    this._glBuffer = null;
     this._type = 0;
   }
 
   static f32(items: number[]) {
-    return new StaticBuffer(new Float32Array(items));
-  }
-
-  init(ctx: IWebglOwner): void {
-    this.bindBuffer(ctx.gl);
-  }
-
-  deInit(ctx: IWebglOwner): void {
-    this.unbindBuffer(ctx.gl);
+    return new this(new Float32Array(items));
   }
 
   get capacity() {
@@ -43,6 +28,7 @@ export class StaticBuffer<T extends BufferLike = BufferLike> implements IGLLifeC
   get buffer() {
     return this._buffer;
   }
+
 
   get maxIndex() {
     return this.length - 1;
@@ -59,41 +45,27 @@ export class StaticBuffer<T extends BufferLike = BufferLike> implements IGLLifeC
     this._buffer[j] = tmp;
   }
 
-  sync(ctx: IWebglOwner) {
-    const gl = ctx.gl;
-    const buff = this._glBuffer;
-    if (!this.changed || !buff || !gl) {
-      return
+  read(target: BufferLike, offset: number = 0) {
+    const buffer = this._buffer;
+    for (let i = 0; i < target.length; i++) {
+      buffer[offset + i] = target[i];
     }
-
-    if (this._needsRebind) {
-      this.unbindBuffer(gl);
-      this.bindBuffer(gl);
-    }
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, buff);
-    gl.bufferData(gl.ARRAY_BUFFER, this._buffer, this.usage, 0, this.length);
+    return false;
   }
 
-  write(target: BufferLike, offset: number = 0) {
-    for (let i = offset; i < target.length; i++) {
-      this._buffer[i] = target[i];
-    }
-  }
+  // protected bindBuffer(gl: WebGL2RenderingContext) {
+  //   const buff = gl.createBuffer();
+  //   this._glBuffer = buff;
+  //   this._needsRebind = false;
+  // }
 
-  protected bindBuffer(gl: WebGL2RenderingContext) {
-    const buff = gl.createBuffer();
-    this._glBuffer = buff;
-    this._needsRebind = false;
-  }
+  // protected unbindBuffer(gl: WebGL2RenderingContext) {
+  //   const glBuffer = this._glBuffer;
+  //   if (!gl || !glBuffer) {
+  //     return
+  //   }
 
-  protected unbindBuffer(gl: WebGL2RenderingContext) {
-    const glBuffer = this._glBuffer;
-    if (!gl || !glBuffer) {
-      return
-    }
-
-    gl.deleteBuffer(glBuffer);
-    this._glBuffer = null;
-  }
+  //   gl.deleteBuffer(glBuffer);
+  //   this._glBuffer = null;
+  // }
 }

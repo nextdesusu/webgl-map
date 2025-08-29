@@ -4,6 +4,6 @@ export type ArrayLike = {
 }
 
 export interface IWriteableStructure {
-  writeSelf(target: ArrayLike, offset?: number): void;
+  copyToArray(target: ArrayLike, offset?: number): void;
   get length(): number;
 }

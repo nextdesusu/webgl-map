@@ -5,6 +5,6 @@ export function processShaderSource(source: string): RawShader {
   const includes = resolveIncludes(source);
   return {
     ...includes,
-    code: `#version 300 es\n${includes.code}`,
+    code: `#version 300 es\nprecision highp float;\n${includes.code}`,
   }
 }
